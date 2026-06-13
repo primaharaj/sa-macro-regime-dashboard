@@ -1,0 +1,12 @@
+streamlit
+pandas
+numpy
+plotly
+duckdb
+yfinance
+pandas-datareader
+scipy
+statsmodels
+scikit-learn
+python-dotenv
+arch
