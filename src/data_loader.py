@@ -30,7 +30,9 @@ class DataLoader:
     MARKET_SERIES = {
         "usd_zar": "USDZAR=X",
         "jse_alsi": "^J203.JO",
-        "saf_equity_etf": "EZA"
+        "saf_equity_etf": "EZA",
+        "sp500": "SPY",
+        "us_10y": "^TNX"
     }
 
     # Configuration for Multi-Source
@@ -43,7 +45,7 @@ class DataLoader:
         },
         "repo_rate": {
             "trading_economics": "interest rate",
-            "fred": "INTREPSAM193N"
+            "fred": "IRSTCB01ZAM156N"
         },
         "yield_10y": {
             "trading_economics": "government bond 10y",
@@ -106,7 +108,14 @@ class DataLoader:
             frames.append(df)
         if not frames:
             raise ValueError("No market data fetched")
-        return pd.concat(frames, axis=1).ffill(limit=2)
+        
+        df_market = pd.concat(frames, axis=1).ffill(limit=2)
+        
+        # Global Relative Strength: JSE ALSI / S&P 500
+        if "jse_alsi" in df_market.columns and "sp500" in df_market.columns:
+            df_market["jse_relative_strength"] = df_market["jse_alsi"] / df_market["sp500"]
+            
+        return df_market
 
     def fetch_macro_data(self, start_date="2005-01-01"):
         logger.info("Fetching aggregated macro data from multiple sources...")
@@ -121,7 +130,13 @@ class DataLoader:
         if not frames:
             return pd.DataFrame()
             
-        return pd.concat(frames, axis=1)
+        df_macro = pd.concat(frames, axis=1)
+        
+        # SA Yield Curve Slope: 10Y - Repo (Proxy for Term Premium/Growth Expectations)
+        if "yield_10y" in df_macro.columns and "repo_rate" in df_macro.columns:
+            df_macro["sa_yield_slope"] = df_macro["yield_10y"] - df_macro["repo_rate"]
+            
+        return df_macro
 
     def update_database(self):
         logger.info("Updating DuckDB database with multi-source data...")
