@@ -45,18 +45,24 @@ class RegimeBacktester:
         """
         metrics = {}
         
-        for name, col in [("Buy & Hold", "asset_ret"), ("Regime Strategy", "strat_ret")]:
-            returns = self.df[col].dropna()
+        # Explicit mapping of return column to its corresponding equity column
+        config = [
+            ("Buy & Hold", "asset_ret", "bh_equity"),
+            ("Regime Strategy", "strat_ret", "strat_equity")
+        ]
+        
+        for name, ret_col, equity_col in config:
+            returns = self.df[ret_col].dropna()
             
             if len(returns) == 0:
                 continue
                 
-            cagr = (self.df[f"{col.split('_')[0]}_equity"].iloc[-1] / self.df[f"{col.split('_')[0]}_equity"].iloc[0]) ** (252/len(returns)) - 1
+            cagr = (self.df[equity_col].iloc[-1] / self.df[equity_col].iloc[0]) ** (252/len(returns)) - 1
             vol = returns.std() * np.sqrt(252)
             sharpe = (cagr - 0.05) / vol if vol != 0 else 0 # Assuming 5% risk-free rate for SA
             
             # Drawdown
-            equity = self.df[f"{col.split('_')[0]}_equity"]
+            equity = self.df[equity_col]
             drawdown = (equity / equity.cummax()) - 1
             max_dd = drawdown.min()
             
