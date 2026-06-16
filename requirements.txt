@@ -2,7 +2,7 @@ streamlit
 pandas
 numpy
 plotly
-duckdb
+duckdb==1.5.3
 yfinance
 pandas-datareader
 scipy
@@ -10,3 +10,6 @@ statsmodels
 scikit-learn
 python-dotenv
 arch
+
+# test dependencies
+pytest==9.1.0
