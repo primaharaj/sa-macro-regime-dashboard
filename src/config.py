@@ -114,6 +114,36 @@ INDICATOR_REGISTRY = {
         "primary_source": "world_bank",
         "native_frequency_days": 365,
         "typical_lag_days": 365
+    },
+
+    # --- LIVE-EDGE IDENTITIES (separate from canonical FRED-backed series) ---
+    # These are capture-on-ingest (as_of_date = capture date) and never written
+    # to canonical cpi / repo_rate.  The Phase-1 single-source guard enforces
+    # this: cpi and repo_rate are BACKFILLABLE with fred as primary, so any
+    # attempt to write a different source to them raises ValueError.
+
+    "cpi_samadb": {
+        "canonical_name": "cpi_samadb",
+        "concept": "CPI Index Level (SAMADB CPS00000, base Dec 2024=100)",
+        "sources": {"samadb": "CPS00000"},
+        "vintage_class": "REVISED_NO_VINTAGE",
+        "primary_source": "samadb",
+        # StatsSA releases CPI ~6 weeks after month-end; SAMADB lag is similar.
+        # Using 75 days (matches canonical cpi) so staleness math is comparable.
+        "native_frequency_days": 31,
+        "typical_lag_days": 75
+    },
+
+    "repo_mpc": {
+        "canonical_name": "repo_mpc",
+        "concept": "SARB Policy Repo Rate (Manual MPC table — authoritative live source)",
+        "sources": {"mpc": "manual"},
+        "vintage_class": "REVISED_NO_VINTAGE",
+        "primary_source": "mpc",
+        # MPC meets ~6 times/year (~60 days between meetings).
+        # Effective date IS the release date, so typical_lag = 0.
+        "native_frequency_days": 60,
+        "typical_lag_days": 0
     }
 }
 

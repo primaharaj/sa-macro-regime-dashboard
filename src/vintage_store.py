@@ -132,15 +132,24 @@ class VintageStore:
             self._upsert_observations(df)
 
     def _populate_revised_no_vintage(self, key, config):
-        # Implementation depends on the specific source
         source_type = config["primary_source"]
         df = pd.DataFrame()
-        
+
         if source_type == "world_bank":
             from src.sources.world_bank import WorldBankSource
             wb = WorldBankSource()
             df = wb.fetch_series(config["sources"]["world_bank"])
-        
+
+        elif source_type == "samadb":
+            from src.sources.samadb_source import SamadbSource
+            src = SamadbSource()
+            df = src.fetch_series()
+
+        elif source_type == "mpc":
+            from src.sources.mpc_repo import MpcRepoSource
+            src = MpcRepoSource()
+            df = src.get_dataframe()
+
         if not df.empty:
             now = datetime.now()
             today = now.date()
@@ -161,6 +170,26 @@ class VintageStore:
                 INSERT OR IGNORE INTO indicator_metadata (canonical_name, first_capture_date)
                 VALUES (?, ?)
             """, (key, today))
+
+    def populate_live(self):
+        """Populate only the live-edge identities (cpi_samadb, repo_mpc).
+
+        Safe to call repeatedly — INSERT OR IGNORE prevents duplicates.
+        Raises if a source is unreachable (caller decides whether to skip).
+        """
+        for key in ("cpi_samadb", "repo_mpc"):
+            config = INDICATOR_REGISTRY.get(key)
+            if config:
+                logger.info(f"populate_live: refreshing {key}")
+                self._populate_revised_no_vintage(key, config)
+
+    def get_first_capture_date(self, canonical_name):
+        """Return first_capture_date for canonical_name, or None if not yet captured."""
+        meta = self.conn.execute(
+            "SELECT first_capture_date FROM indicator_metadata WHERE canonical_name = ?",
+            (canonical_name,)
+        ).fetchone()
+        return meta[0] if meta else None
 
     def get_pit(self, canonical_name, observation_date, as_of_date):
         """
